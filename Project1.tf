@@ -11,7 +11,7 @@ data "aws_vpc" "default" {
 }
 
 # Generates Default subnet in AZ 
-data "aws_subnet" "default" {
+data "aws_subnets" "default" {
   filter {
     name   = "default-for-az"
     values = ["true"]
@@ -21,21 +21,17 @@ data "aws_subnet" "default" {
     name   = "vpc-id"
     values = [data.aws_vpc.default.id]
   }
-   filter {
-    name   = "availability-zone"
-    values = ["us-east-1a"] 
-  }
   
 }
 
 
 # to use one of the subnet ID
 locals {
-  default_subnet_id = data.aws_subnet.default.id
+  default_subnet_ids = data.aws_subnets.default.ids
 }
 
 # Security Groups for Web Servers
-resource "aws_security_group" "wed_sg" {
+resource "aws_security_group" "web_sg" {
   vpc_id = data.aws_vpc.default.id
 
 ingress {
@@ -67,7 +63,7 @@ user_data = base64encode(<<-EOF
     systemctl enable nginx
   EOF
   )
-  vpc_security_group_ids = [ aws_security_group.wed_sg.id ]
+  vpc_security_group_ids = [ aws_security_group.web_sg.id ]
 
 }
 
@@ -75,8 +71,8 @@ user_data = base64encode(<<-EOF
 resource "aws_lb" "alb" {
   name = "webapp-alb"
   load_balancer_type = "application"
-  security_groups = [ aws_security_group.wed_sg.id]
-  subnets = [ local.default_subnet_id ]
+  security_groups = [ aws_security_group.web_sg.id]
+  subnets = local.default_subnet_ids
 }
 
 # We need to create a target group now
@@ -86,6 +82,15 @@ resource "aws_lb_target_group" "tg" {
   protocol = "HTTP"
   vpc_id = data.aws_vpc.default.id
 
+ health_check {
+   path                = "/"
+    protocol            = "HTTP"
+    interval            = 30
+    timeout             = 5
+    healthy_threshold   = 2
+    unhealthy_threshold = 2
+    matcher             = "200-399"
+ }
 }
 
 # Now Attach the Target group to Load balancer via a Listerner
@@ -107,7 +112,7 @@ resource "aws_autoscaling_group" "web_asg" {
   desired_capacity = 2
   min_size = 1
   max_size = 3
-  vpc_zone_identifier = [ local.default_subnet_id ]
+  vpc_zone_identifier = local.default_subnet_ids
   target_group_arns = [ aws_lb_target_group.tg.arn ]
   launch_template {
     id = aws_launch_template.webapp.id
@@ -118,3 +123,10 @@ resource "aws_autoscaling_group" "web_asg" {
   force_delete = "true"
   wait_for_capacity_timeout = "0"
 }
+
+
+output "default_subnet_ids" {
+  value = local.default_subnet_ids
+}
+
+
