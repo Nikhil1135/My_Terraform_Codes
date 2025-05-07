@@ -5,13 +5,13 @@ provider "aws" {
 
 # Data block generally allows you to fetch information about existing infracture in your Acccount
 
-# Adding a default VPC form your Account
-data "aws_vpc" "default" {
+
+data "aws_vpc" "default" {     # Adding a default VPC form your Account
   default = true
 }
 
-# Generates Default subnet in AZ 
-data "aws_subnets" "default" {
+
+data "aws_subnets" "default" {     # Generates Default subnet in AZ 
   filter {
     name   = "default-for-az"
     values = ["true"]
@@ -25,13 +25,13 @@ data "aws_subnets" "default" {
 }
 
 
-# to use one of the subnet ID
-locals {
+
+locals {                                                    # to use one of the subnet ID
   default_subnet_ids = data.aws_subnets.default.ids
 }
 
-# Security Groups for Web Servers
-resource "aws_security_group" "web_sg" {
+
+resource "aws_security_group" "web_sg" {                     # Security Groups for Web Servers
   vpc_id = data.aws_vpc.default.id
 
 ingress {
@@ -49,34 +49,35 @@ egress {
 }
 }
 
-# Creating a Launch Template for the EC2 Template
-resource "aws_launch_template" "webapp" {
+
+resource "aws_launch_template" "webapp" {                      # Creating a Launch Template for the EC2 Template
 name_prefix = "webapp-lt"
 image_id = "ami-0f88e80871fd81e91"
 instance_type = "t2.micro"
 
 user_data = base64encode(<<-EOF
-    #!/bin/bash
-    yum update -y
-    amazon-linux-extras install nginx1 -y
-    systemctl start nginx
-    systemctl enable nginx
-  EOF
-  )
+  #!/bin/bash
+  yum update -y
+  yum install -y nginx
+  systemctl enable nginx
+  echo "<h1>Hello from $(hostname) via Load Balancer</h1>" > /usr/share/nginx/html/index.html
+  systemctl start nginx
+EOF
+)
   vpc_security_group_ids = [ aws_security_group.web_sg.id ]
 
 }
 
-# Now we need to create an Application load balancer
-resource "aws_lb" "alb" {
+
+resource "aws_lb" "alb" {                                            # Now we need to create an Application load balancer
   name = "webapp-alb"
   load_balancer_type = "application"
   security_groups = [ aws_security_group.web_sg.id]
   subnets = local.default_subnet_ids
 }
 
-# We need to create a target group now
-resource "aws_lb_target_group" "tg" {
+
+resource "aws_lb_target_group" "tg" {                              # We need to create a target group now
   name = "webapp-tg"
   port = 80
   protocol = "HTTP"
@@ -93,8 +94,8 @@ resource "aws_lb_target_group" "tg" {
  }
 }
 
-# Now Attach the Target group to Load balancer via a Listerner
-resource "aws_lb_listener" "http" {
+                                   
+resource "aws_lb_listener" "http" {                                # Now Attach the Target group to Load balancer via a Listerner
   load_balancer_arn = aws_lb.alb.arn
   port = 80
   protocol = "HTTP"
@@ -107,16 +108,16 @@ resource "aws_lb_listener" "http" {
   
 }
 
-# Creating an ASG now
-resource "aws_autoscaling_group" "web_asg" {
+
+resource "aws_autoscaling_group" "web_asg" {                            # Creating an ASG now
   desired_capacity = 2
-  min_size = 1
+  min_size = 2
   max_size = 3
   vpc_zone_identifier = local.default_subnet_ids
   target_group_arns = [ aws_lb_target_group.tg.arn ]
   launch_template {
     id = aws_launch_template.webapp.id
-    version = "$Latest"
+    version = aws_launch_template.webapp.default_version
   }
 
   health_check_type = "ELB"
