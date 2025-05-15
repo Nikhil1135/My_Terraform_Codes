@@ -1,0 +1,41 @@
+AUTO SCALING GROUPS - Interview Questions
+=========================================================================
+
+Section 1: Core Concept Questions
+------------------------------------------
+
+What is an Auto Scaling Group (ASG) in AWS? How does it work with EC2 instances?
+
+What are the different types of scaling policies available in ASG? Can you explain each with a use case?
+
+How does AWS ensure high availability using ASG and Load Balancers together?
+
+What’s the difference between a launch template and a launch configuration in ASG? Which one should you prefer and why?
+
+
+Section 2: Scenario-Based Questions
+-------------------------------------------
+Imagine your application is receiving a sudden spike in traffic. How would an ASG with an Application Load Balancer respond? Walk me through the flow.
+
+You have an ASG with min=2, max=6. A deployment went wrong and crashed all instances. Your health checks are set only at the ELB level. What happens next?
+
+You need to deploy a service that handles critical banking transactions. How would you design the ASG and Load Balancer setup to ensure high availability and minimal downtime during deployments?
+
+
+Section 3: Advanced & DevOps-Oriented
+-------------------------------------------
+How do lifecycle hooks work in an ASG, and what can they be used for during scale-out or scale-in events?
+
+Can you explain how target groups and listeners work in relation to an Application Load Balancer?
+
+How would you use CloudWatch and ASG policies to create a cost-effective auto-scaling solution for a workload that has predictable traffic spikes every weekday from 9AM to 5PM?
+
+
+Section 4: Tricky/Thought Provoking
+--------------------------------------------
+Can an instance be part of multiple ASGs at once? Why or why not?
+
+What would happen if you deregister a healthy instance from a target group attached to an ALB while it’s still part of an ASG?
+
+Let’s say a target in your ALB is failing health checks, but the EC2 status checks are passing. What does that imply, and what should you investigate?
+
