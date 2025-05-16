@@ -6,12 +6,12 @@ provider "aws" {
 # Data block generally allows you to fetch information about existing infracture in your Acccount
 
 
-data "aws_vpc" "default" {     # Adding a default VPC form your Account
+data "aws_vpc" "default" {    
   default = true
 }
 
 
-data "aws_subnets" "default" {     # Generates Default subnet in AZ 
+data "aws_subnets" "default" {     
   filter {
     name   = "default-for-az"
     values = ["true"]
@@ -26,12 +26,12 @@ data "aws_subnets" "default" {     # Generates Default subnet in AZ
 
 
 
-locals {                                                    # to use one of the subnet ID
+locals {                                                   
   default_subnet_ids = data.aws_subnets.default.ids
 }
 
 
-resource "aws_security_group" "web_sg" {                     # Security Groups for Web Servers
+resource "aws_security_group" "web_sg" {                     
   vpc_id = data.aws_vpc.default.id
 
 ingress {
@@ -50,7 +50,7 @@ egress {
 }
 
 
-resource "aws_launch_template" "webapp" {                      # Creating a Launch Template for the EC2 Template
+resource "aws_launch_template" "webapp" {                     
 name_prefix = "webapp-lt"
 image_id = "ami-0f88e80871fd81e91"
 instance_type = "t2.micro"
@@ -69,7 +69,7 @@ EOF
 }
 
 
-resource "aws_lb" "alb" {                                            # Now we need to create an Application load balancer
+resource "aws_lb" "alb" {                                           
   name = "webapp-alb"
   load_balancer_type = "application"
   security_groups = [ aws_security_group.web_sg.id]
@@ -77,7 +77,7 @@ resource "aws_lb" "alb" {                                            # Now we ne
 }
 
 
-resource "aws_lb_target_group" "tg" {                              # We need to create a target group now
+resource "aws_lb_target_group" "tg" {                             
   name = "webapp-tg"
   port = 80
   protocol = "HTTP"
@@ -95,7 +95,7 @@ resource "aws_lb_target_group" "tg" {                              # We need to 
 }
 
                                    
-resource "aws_lb_listener" "http" {                                # Now Attach the Target group to Load balancer via a Listerner
+resource "aws_lb_listener" "http" {                                
   load_balancer_arn = aws_lb.alb.arn
   port = 80
   protocol = "HTTP"
@@ -109,7 +109,7 @@ resource "aws_lb_listener" "http" {                                # Now Attach 
 }
 
 
-resource "aws_autoscaling_group" "web_asg" {                            # Creating an ASG now
+resource "aws_autoscaling_group" "web_asg" {                            
   desired_capacity = 2
   min_size = 2
   max_size = 3
